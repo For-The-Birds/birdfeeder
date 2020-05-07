@@ -13,7 +13,7 @@ function tg {
 		-x socks5h://localhost:9000 \
 		-X POST https://api.telegram.org/bot$token/sendPhoto \
 		-F chat_id="$2" \
-		-F caption="$et $f iso $iso nobird:$nb yesbird:$yb" \
+		-F caption="$et $f iso $iso n:$nb y:$yb" \
 		-F photo=@$lis
 	rm $lis
 }
@@ -45,7 +45,7 @@ while true; do
 		if (( $(echo "$nb > 0.9" | bc -l) )); then
 			continue
 		fi
-		if (( $(echo "$yb > 0.99" | bc -l) )); then
+		if (( $(echo "$yb > 0.9998" | bc -l) )); then
 			# yesbird
 			ch="-1001189666913"
 		else

@@ -13,10 +13,8 @@ data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
 
 @app.route('/yesnobird', methods=['POST'])
 def yesno():
-    #p = yesnobird(request.form['filename'])
-    #return "{}".format(p)
-    p = yesnobird(request.form['filename'])
-    return "{0:.4f} {1:.4f}".format(p[0], p[1])
+    p = yesnobird(request.form['filename']).round(decimals=4)
+    return "{0:.4g} {1:.4g}".format(p[0], p[1])
 
 def yesnobird(filename):
     image = Image.open(filename)
