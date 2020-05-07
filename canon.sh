@@ -1,8 +1,22 @@
 #!/bin/bash
 
 mkdir li
+v4l2-ctl -d /dev/video2 -c gain_automatic=0
 
 read token <token
+
+function tg {
+	lis=$1-sharp.jpg
+	convert $1 -unsharp 1x2+1.5+0 $lis
+	
+	curl  \
+		-x socks5h://localhost:9000 \
+		-X POST https://api.telegram.org/bot$token/sendPhoto \
+		-F chat_id="$2" \
+		-F caption="$et $f iso $iso nobird:$nb yesbird:$yb" \
+		-F photo=@$lis
+	rm $lis
+}
 
 while true; do
 	if [ -f motion-detected ] ; then
@@ -28,18 +42,17 @@ while true; do
 
 		yesno=$(curl http://127.0.0.1:5000/yesnobird -F filename="$PWD/$li")
 		read nb yb <<< "$yesno"
-		if (( $(echo "$nb < $yb" | bc -l) )); then
+		if (( $(echo "$nb > 0.9" | bc -l) )); then
+			continue
+		fi
+		if (( $(echo "$yb > 0.99" | bc -l) )); then
+			# yesbird
 			ch="-1001189666913"
 		else
+			# nobird
 			ch="-1001396273178"
 		fi
-		
-		curl  \
-			-x socks5h://localhost:9000 \
-			-X POST https://api.telegram.org/bot$token/sendPhoto \
-			-F chat_id="$ch" \
-			-F caption="$et $f iso $iso\n$yesno" \
-			-F photo=@$li &
+		tg $li $ch &
 	fi
 	[ -f motion-detected ] || sleep 1
 done
