@@ -2,7 +2,7 @@
 
 function t {
     pkill -fe dslr.sh
-    pkill -fe motion
+    pkill -e motion
     pkill -fe flask
 }
 
