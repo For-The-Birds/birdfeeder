@@ -1,0 +1,6 @@
+[Unit]
+Description=Birdwatcher stopper
+
+[Service]
+Type=oneshot
+ExecStart=/bin/true

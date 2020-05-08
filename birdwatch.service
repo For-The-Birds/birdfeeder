@@ -1,0 +1,10 @@
+[Unit]
+Description=Bird feeder watcher
+Conflicts=birdwatch-stop.service
+
+[Service]
+ExecStart=/bin/bash /home/pavel/motion/runall.sh
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=default.target
