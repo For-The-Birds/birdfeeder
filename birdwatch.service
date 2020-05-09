@@ -5,6 +5,7 @@ Conflicts=birdwatch-stop.service
 [Service]
 ExecStart=/bin/bash /home/pavel/motion/runall.sh
 KillSignal=SIGTERM
+WorkingDirectory=/home/pavel/motion
 
 [Install]
 WantedBy=default.target

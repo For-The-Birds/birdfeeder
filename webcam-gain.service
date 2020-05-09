@@ -1,0 +1,8 @@
+[Unit]
+Description=Adjust webcam gain
+
+[Service]
+ExecStart=/bin/bash /home/pavel/motion/poke-webcam.sh
+
+[Install]
+WantedBy=default.target

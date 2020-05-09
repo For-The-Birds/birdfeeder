@@ -1,20 +1,15 @@
 #!/bin/bash
 
 mkdir li
-v4l2-ctl -d /dev/video2 -c gain_automatic=0
 
 read token <token
 
 function tg {
 	lis=$1-sharp.jpg
-	convert $1 -unsharp 1x2+1.5+0 $lis
+	# FIXME: hope convert is faster than dslr
+	convert $1 -unsharp 1x2+1.5+0 -resize 70% $lis
 	
-	curl  \
-		-x socks5h://localhost:9000 \
-		-X POST https://api.telegram.org/bot$token/sendPhoto \
-		-F chat_id="$2" \
-		-F caption="$et $f iso $iso n:$nb y:$yb" \
-		-F photo=@$lis
+	bash sendPhoto.sh $2 $lis "$et $f iso $iso n:$nb y:$yb"
 	rm $lis
 }
 
