@@ -2,8 +2,6 @@
 
 mkdir li
 
-read token <token
-
 function tg {
 	lis=$1-sharp.jpg
 	# FIXME: hope convert is faster than dslr
@@ -26,7 +24,7 @@ while true; do
 		n=$(( n + 1 ))
 		nn=$( printf '%.8d' $n )
 		li=li/$nn.jpg
-		mv -v $lastimage $li
+		mv -v $lastimage $li || continue
 		echo $n >imagen
 
 		#sharpness=$(python3 sharpness.py $li)
@@ -38,6 +36,7 @@ while true; do
 		yesno=$(curl http://127.0.0.1:5000/yesnobird -F filename="$PWD/$li")
 		read nb yb <<< "$yesno"
 		if (( $(echo "$nb > 0.9" | bc -l) )); then
+		    rm -v $li
 			continue
 		fi
 		if (( $(echo "$yb > 0.9998" | bc -l) )); then
