@@ -36,7 +36,7 @@ while true; do
 		li224=$li-224.jpg
 		gm convert $li -resize '224x224!' $li224
 
-		yesno=$(curl http://127.0.0.1:5000/yesnobird -F filename="$PWD/$li224")
+		yesno=$(curl --silent http://127.0.0.1:5000/yesnobird -F filename="$PWD/$li224")
 		rm $li224
 
 		read nb yb <<< "$yesno"
