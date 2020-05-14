@@ -5,7 +5,7 @@ mkdir li
 function tg {
 	lis=$1-sharp.jpg
 	# FIXME: hope convert is faster than dslr
-	convert $1 -unsharp 1x2+1.5+0 -resize 70% $lis
+	gm convert $1 -unsharp 0x2+1.5+0 -resize 70% $lis
 	
 	bash sendPhoto.sh $2 $lis "$et $f iso $iso n:$nb y:$yb"
 	rm $lis
@@ -33,18 +33,27 @@ while true; do
 		f=$(exif   -m --tag=0x829d --no-fixup $li)
 		iso=$(exif -m --tag=0x8827 --no-fixup $li)
 
-		yesno=$(curl http://127.0.0.1:5000/yesnobird -F filename="$PWD/$li")
+		li224=$li-224.jpg
+		gm convert $li -resize '224x224!' $li224
+
+		yesno=$(curl http://127.0.0.1:5000/yesnobird -F filename="$PWD/$li224")
+		rm $li224
+
 		read nb yb <<< "$yesno"
+		echo "-=-=-=-=-= n:$nb yes:$yb =-=-=-=-=-"
 		if (( $(echo "$nb > 0.9" | bc -l) )); then
 		    rm -v $li
 			continue
 		fi
-		if (( $(echo "$yb > 0.9998" | bc -l) )); then
+		if (( $(echo "$yb > 0.9" | bc -l) )); then
 			# yesbird
 			ch="-1001189666913"
+            #if (( $(echo "$ass > 0.2" | bc -l) )); then
+			#    ch="-1001436929738"
+            #fi
 		else
-			# nobird
-			ch="-1001396273178"
+            # nobird
+            ch="-1001396273178"
 		fi
 		tg $li $ch &
 	fi
