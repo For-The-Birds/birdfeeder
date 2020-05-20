@@ -1,0 +1,14 @@
+apicall.sh
+*.zip
+*.png
+*.h5
+__py*
+start_time
+imagen
+motion_detected
+token
+yes
+no
+old
+li
+film
