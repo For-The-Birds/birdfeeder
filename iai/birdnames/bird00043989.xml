@@ -1,0 +1,26 @@
+<annotation>
+	<folder>frames</folder>
+	<filename>bird00043989.jpg</filename>
+	<path>/home/yekm/src/yekm/birdfeeder/iai/frames/bird00043989.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>hawfinch</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>290</xmin>
+			<ymin>246</ymin>
+			<xmax>341</xmax>
+			<ymax>343</ymax>
+		</bndbox>
+	</object>
+</annotation>

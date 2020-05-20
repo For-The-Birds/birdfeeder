@@ -1,0 +1,26 @@
+<annotation>
+	<folder>frames</folder>
+	<filename>bird00032501.jpg</filename>
+	<path>/home/yekm/src/yekm/birdfeeder/iai/frames/bird00032501.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>great_tit</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>74</xmin>
+			<ymin>332</ymin>
+			<xmax>243</xmax>
+			<ymax>441</ymax>
+		</bndbox>
+	</object>
+</annotation>
