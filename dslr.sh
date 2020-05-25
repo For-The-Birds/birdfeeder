@@ -11,10 +11,15 @@ function tg {
 	rm $lis
 }
 
+ch_birds="-1001189666913"
+ch_nobirds="-1001396273178"
+
 while true; do
 	if [ -f motion-detected ] ; then
 		if ! gphoto2 --capture-image-and-download --force-overwrite ; then
-			sleep 1
+			#sleep 1
+			bash sendMessage.sh $ch_nobirds "dslr reset"
+			bash reset-dslr.sh
 			continue
 		fi
 
@@ -47,13 +52,13 @@ while true; do
 		fi
 		if (( $(echo "$yb > 0.9" | bc -l) )); then
 			# yesbird
-			ch="-1001189666913"
+			ch=$ch_birds
             #if (( $(echo "$ass > 0.2" | bc -l) )); then
 			#    ch="-1001436929738"
             #fi
 		else
             # nobird
-            ch="-1001396273178"
+            ch="$ch_nobirds"
 		fi
 		tg $li $ch &
 	fi
