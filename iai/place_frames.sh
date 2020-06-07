@@ -1,3 +1,8 @@
+#!/bin/bash
+
+# place pascalvoc annotations (from $XMLDIR) and
+# corresponding images (from ./frames/) to $ODIR,
+# split 20% for validation.
 
 [ -z "$ODIR" || -z "$XMLDIR" ] && exit -1
 
