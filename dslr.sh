@@ -41,7 +41,7 @@ function check_cmd {
             fi
 
             if echo $botcmd | grep exp ; then
-                gphoto2 --set-config-index $config
+                gphoto2 --set-config-index $botcmd
             fi
             set +vx
         fi
@@ -96,7 +96,7 @@ while true; do
         else
             # nobird
             ch="$ch_nobirds"
-            ln -s $li confusing/$(basename li)
+            ln -s ../$li confusing/$(basename $li)
         fi
         tg $li $ch &
     fi

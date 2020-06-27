@@ -7,8 +7,7 @@ app = Flask(__name__)
 
 np.set_printoptions(suppress=True)
 
-#model = tensorflow.keras.models.load_model('./iatm/jobdir224/models/model_mobilenet_04_0.951.hdf5')
-model = tensorflow.keras.models.load_model('./iatm/jobdir/models/model_mobilenet_04_0.988.hdf5')
+model = tensorflow.keras.models.load_model('model.hdf5')
 
 data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
 
