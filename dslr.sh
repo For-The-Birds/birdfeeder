@@ -12,7 +12,7 @@ function tg {
 
     pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     bash sendPhoto.sh $2 $lis ''
-    bash sendMessage.sh $2 "$et $f $iso $yb $exp $pid"
+    bash sendMessage.sh $2 "\`$et $f $iso $exp $yb $pid\`"
     rm $lis
 }
 
@@ -83,11 +83,11 @@ while true; do
 
         read nb yb <<< "$yesno"
         echo "-=-=-=-=-= n:$nb yes:$yb =-=-=-=-=-"
-        if (( $(echo "$nb > 0.5" | bc -l) )); then
+        if (( $(echo "$nb > 0.7" | bc -l) )); then
             rm -v $li
             continue
         fi
-        if (( $(echo "$yb > 0.97" | bc -l) )); then
+        if (( $(echo "$yb > 0.9" | bc -l) )); then
             # yesbird
             ch=$ch_birds
             #if (( $(echo "$ass > 0.2" | bc -l) )); then
