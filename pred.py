@@ -7,16 +7,20 @@ app = Flask(__name__)
 
 np.set_printoptions(suppress=True)
 
-model = tensorflow.keras.models.load_model('model.hdf5')
+model_yesno = tensorflow.keras.models.load_model('model_yesno.hdf5')
+model_eye = tensorflow.keras.models.load_model('model_eye.hdf5')
 
-data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+@app.route('/eye', methods=['POST'])
+def eye():
+    p = pred(request.form['filename'], model_eye).round(decimals=4)
+    return "{0:.4g} {1:.4g}".format(p[0], p[1])
 
 @app.route('/yesnobird', methods=['POST'])
 def yesno():
-    p = yesnobird(request.form['filename']).round(decimals=4)
+    p = pred(request.form['filename'], model_yesno).round(decimals=4)
     return "{0:.4g} {1:.4g}".format(p[0], p[1])
 
-def yesnobird(filename):
+def pred(filename, model):
     image = Image.open(filename)
 
     #resize the image to a 224x224 with the same strategy as in TM2:
@@ -25,9 +29,9 @@ def yesnobird(filename):
     image = ImageOps.fit(image, size, Image.ANTIALIAS)
     image_array = np.asarray(image)
     normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
     data[0] = normalized_image_array
     prediction = model.predict(data).flatten()
     print(prediction)
     return prediction
-
 

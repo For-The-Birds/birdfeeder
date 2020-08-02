@@ -1,0 +1,6 @@
+[Unit]
+Description=RaspberryPi fixer
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/reboot

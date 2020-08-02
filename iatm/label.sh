@@ -2,7 +2,8 @@
 [ -z "$1" ] && echo "first arg 'project name' is empty" && exit -1
 project=$1
 
-declare -a L=( nobird yesbird )
+#declare -a L=( nobird yesbird )
+declare -a L=( noeye yeseye )
 L=(dummy ${L[@]}) # make labels start from 1 for easier keyboard logistics
 
 function maintain_focus {
@@ -48,7 +49,7 @@ while read f; do
     killall sxiv
     [ "$ln" = "q" ] && break
     [ "$ln" = "s" ] && continue
-    echo $f _ $ln >> f-label.txt
+    echo $f _ $ln >> $project-label.txt
 
     gm convert $f -resize '224x224!' $im224 &
     ln -s $f label/${L[$ln]}/
@@ -65,8 +66,8 @@ rm -v $json
 #cat no.txt      | sed 's/$/ _ 1/' >>f-label.txt
 #cat yes-all.txt | sed 's/$/ _ 2/' >>f-label.txt
 t=$(mktemp -p .)
-sort -k 1,1 -u f-label.txt >>$t
-mv $t f-label.txt
+sort -k 1,1 -u $project-label.txt >>$t
+mv $t $project-label.txt
 
 set +vx
 
@@ -96,5 +97,4 @@ mv $t $json
 
 echo docker run -t --rm -v $PWD:/home -w /home python:3.6 \
     bash -c "pip install imageatm nbconvert && python train.py $project"
-
 

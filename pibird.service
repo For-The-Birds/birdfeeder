@@ -1,0 +1,10 @@
+[Unit]
+Description=Birdfeeder raspberrypi http interface
+Conflicts=birdwatch-stop.service
+
+[Service]
+ExecStart=/home/yekm/go/bin/pibird
+Restart=always
+
+[Install]
+WantedBy=default.target
