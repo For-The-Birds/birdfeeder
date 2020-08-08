@@ -54,15 +54,38 @@ function check_cmd {
 
 }
 
+net_err=0
+
+function reset_rpi {
+    bash sendMessage.sh $ch_nobirds "rpi reset"
+    bash reset-rpi.sh
+    wget -q -O - $MOTION_URL
+    while [ $? -eq 4 ] ; do
+        net_err=$(( $net_err + 1 ))
+        if [ $net_err -ge 600 ] ; then
+            bash sendMessage.sh $ch_nobirds "rpi reset"
+            bash reset-rpi.sh
+        fi
+        sleep 1
+        wget -q -O - $MOTION_URL
+    done
+    net_err=0
+}
+
 while true; do
-    if wget -q -O - $MOTION_URL ; then
+    if wget -q --tries=1 --timeout=6 -O - $MOTION_URL ; then
         check_cmd
 
         read n <imagen
         n=$(( n + 1 ))
         nn=$( printf '%.8d' $n )
         li=birds/$nn.jpg
-        wget --progress=bar:force:noscroll $SHOT_URL -O $li
+        wget --progress=bar:force:noscroll --tries=1 --timeout=20 $SHOT_URL -O $li
+        if [ ! -s $li ] ; then
+            rm $li
+            reset_rpi
+            continue
+        fi
         if [ $? -ne 0 ] ; then
             bash sendMessage.sh $ch_nobirds "dslr reset"
             bash reset-dslr.sh
@@ -91,9 +114,6 @@ while true; do
         if (( $(echo "$yb > 0.9" | bc -l) )); then
             # yesbird
             ch=$ch_birds
-            #if (( $(echo "$ass > 0.2" | bc -l) )); then
-            #    ch="-1001436929738"
-            #fi
             eye=$(curl -s $EYEPRED_URL -F filename="$PWD/$li224")
             read neye yeye <<< "$eye"
             if (( $(echo "$neye > 0.8" | bc -l) )); then
@@ -107,11 +127,11 @@ while true; do
         rm $li224
         tg $li $ch &
     else
-        if [ $? -eq 4 ] ; then
-            bash reset-rpi.sh
-            while ! wget -q -O - $MOTION_URL ; do
-                sleep 1
-            done
+        if [ $? -eq 20 ] ; then
+            net_err=$(( $net_err + 1 ))
+            if [ $net_err -ge 5 ] ; then
+                reset_rpi
+            fi
         fi
         sleep 0.5
     fi
