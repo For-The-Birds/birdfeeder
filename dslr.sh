@@ -11,6 +11,11 @@ ch_birds="-1001189666913"
 ch_nobirds="-1001396273178"
 ch_noeye="-1001455880770"
 
+RM_THR=0.2
+POST_THR=0.9
+EYE_THR=0.8
+NOEYE_THR=0.001
+
 function tg {
     lis=$1-sharp.jpg
     # FIXME: hope convert is faster than dslr
@@ -18,7 +23,8 @@ function tg {
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     bash sendPhoto.sh $2 $lis ''
-    bash sendMessage.sh $2 "\`$et $f $iso $exp $yb $yeye $nn\`"
+    l=$(echo -e "\x60$et $f $iso $exp $yb $yeye $nn\x60") # -e \x60 instead of "\`", vim syntax highlight is happy now
+    bash sendMessage.sh $2 "$l"
     rm $lis
 }
 
@@ -28,7 +34,7 @@ function postgif {
     bash sendVideo.sh $ch_nobirds birds_video.mp4 "${@:3}"
 }
 
-bash sendMessage.sh $ch_nobirds "starting"
+bash sendMessage.sh $ch_nobirds "starting rm:$RM_THR post:$POST_THR eye:$EYE_THR noeye:$NOEYE_THR"
 
 function check_cmd {
         updates=$(bash apicall.sh getUpdates offset=-1)
@@ -83,7 +89,8 @@ while true; do
         wget --progress=bar:force:noscroll --tries=1 --timeout=20 $SHOT_URL -O $li
         if [ ! -s $li ] ; then
             rm $li
-            reset_rpi
+            bash sendMessage.sh $ch_nobirds "dslr reset"
+            bash reset-dslr.sh
             continue
         fi
         if [ $? -ne 0 ] ; then
@@ -104,19 +111,24 @@ while true; do
         gm convert $li -resize '224x224!' $li224
 
         yesno=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li224")
+        eye=$(curl -s $EYEPRED_URL -F filename="$PWD/$li224")
+        rm $li224
 
         read nb yb <<< "$yesno"
-        echo "-=-=-=-=-= bird:$yb =-=-=-=-=-"
-        if (( $(echo "$nb > 0.8" | bc -l) )); then
+        read neye yeye <<< "$eye"
+        echo "-=-=-=-=-=-=-= bird:$yb eye:$yeye =-=-=-=-=-=-=-"
+        if (( $(echo "$yb < $RM_THR" | bc -l) )); then
             rm -v $li
             continue
         fi
-        if (( $(echo "$yb > 0.9" | bc -l) )); then
+        if (( $(echo "$yb > $POST_THR" | bc -l) )); then
             # yesbird
             ch=$ch_birds
-            eye=$(curl -s $EYEPRED_URL -F filename="$PWD/$li224")
-            read neye yeye <<< "$eye"
-            if (( $(echo "$neye > 0.8" | bc -l) )); then
+            if (( $(echo "$yeye < $EYE_THR" | bc -l) )); then
+                if (( $(echo "$yeye < $NOEYE_THR" | bc -l) )); then
+                    bash sendMessage.sh $ch_noeye "not posted $yb $yeye $nn"
+                    continue
+                fi
                 ch=$ch_noeye
             fi
         else
@@ -124,7 +136,6 @@ while true; do
             ch="$ch_nobirds"
             ln -s ../$li confusing/$(basename $li)
         fi
-        rm $li224
         tg $li $ch &
     else
         if [ $? -eq 20 ] ; then

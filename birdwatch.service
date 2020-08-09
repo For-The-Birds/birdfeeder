@@ -1,12 +1,13 @@
 [Unit]
 Description=Bird feeder watcher
 Conflicts=birdwatch-stop.service
+Requires=birdpred.service
 After=birdpred.service
 
 [Service]
 ExecStart=/bin/bash dslr.sh
 KillSignal=SIGTERM
-WorkingDirectory=/home/yekm/src/yekm/bf
+WorkingDirectory=/home/birds/bf
 
 [Install]
 WantedBy=default.target

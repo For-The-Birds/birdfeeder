@@ -6,7 +6,7 @@ Conflicts=birdwatch-stop.service
 Environment=FLASK_APP=pred.py
 ExecStart=/usr/bin/python3 -m flask run
 KillSignal=SIGTERM
-WorkingDirectory=/home/yekm/src/yekm/bf
+WorkingDirectory=/home/birds/bf
 
 [Install]
 WantedBy=default.target
