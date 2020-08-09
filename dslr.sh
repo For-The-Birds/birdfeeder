@@ -34,7 +34,8 @@ function postgif {
     bash sendVideo.sh $ch_nobirds birds_video.mp4 "${@:3}"
 }
 
-bash sendMessage.sh $ch_nobirds "starting rm:$RM_THR post:$POST_THR eye:$EYE_THR noeye:$NOEYE_THR"
+l=$(echo -e "\x60starting rm:$RM_THR post:$POST_THR eye:$EYE_THR noeye:$NOEYE_THR\x60") # dot must be escaped or put into `
+bash sendMessage.sh $ch_nobirds "$l"
 
 function check_cmd {
         updates=$(bash apicall.sh getUpdates offset=-1)
