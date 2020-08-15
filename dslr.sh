@@ -6,6 +6,7 @@ CONF_URL="http://192.168.1.89:8080/config"
 BIRDPRED_URL="http://127.0.0.1:5000/yesnobird"
 EYEPRED_URL="http://127.0.0.1:5000/eye"
 MOTION_URL="http://192.168.1.89:8080/motion"
+RPI_REBOOT_URL="http://192.168.1.89:8080/reboot"
 
 ch_birds="-1001189666913"
 ch_nobirds="-1001396273178"
@@ -16,6 +17,11 @@ POST_THR=0.9
 EYE_THR=0.8
 NOEYE_THR=0.001
 
+function tglog {
+    l=$(echo -e "\x60${@:2}\x60")
+    bash sendMessage.sh $1 "$l"
+}
+
 function tg {
     lis=$1-sharp.jpg
     # FIXME: hope convert is faster than dslr
@@ -23,19 +29,17 @@ function tg {
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     bash sendPhoto.sh $2 $lis ''
-    l=$(echo -e "\x60$et $f $iso $exp $yb $yeye $nn\x60") # -e \x60 instead of "\`", vim syntax highlight is happy now
-    bash sendMessage.sh $2 "$l"
+    tglog $2 "$et $f $iso $exp $yb $yeye $nn"
     rm $lis
 }
 
 function postgif {
     log=$(bash -vx makegif.sh birds/ $1 $2 birds_video.mp4)
-    bash sendMessage.sh $ch_nobirds "$log"
+    tglog $ch_nobirds "$log"
     bash sendVideo.sh $ch_nobirds birds_video.mp4 "${@:3}"
 }
 
-l=$(echo -e "\x60starting rm:$RM_THR post:$POST_THR eye:$EYE_THR noeye:$NOEYE_THR\x60") # dot must be escaped or put into `
-bash sendMessage.sh $ch_nobirds "$l"
+tglog $ch_nobirds "starting rm:$RM_THR post:$POST_THR eye:$EYE_THR noeye:$NOEYE_THR"
 
 function check_cmd {
         updates=$(bash apicall.sh getUpdates offset=-1)
@@ -64,13 +68,13 @@ function check_cmd {
 net_err=0
 
 function reset_rpi {
-    bash sendMessage.sh $ch_nobirds "rpi reset"
+    tglog $ch_nobirds "rpi reset"
     bash reset-rpi.sh
     wget -q -O - $MOTION_URL
     while [ $? -eq 4 ] ; do
         net_err=$(( $net_err + 1 ))
         if [ $net_err -ge 600 ] ; then
-            bash sendMessage.sh $ch_nobirds "rpi reset"
+            tglog $ch_nobirds "rpi reset"
             bash reset-rpi.sh
         fi
         sleep 1
@@ -80,22 +84,18 @@ function reset_rpi {
 }
 
 while true; do
-    if wget -q --tries=1 --timeout=6 -O - $MOTION_URL ; then
+    if wget -q --tries=1 --timeout=10 -O - $MOTION_URL ; then
         check_cmd
 
         read n <imagen
         n=$(( n + 1 ))
         nn=$( printf '%.8d' $n )
         li=birds/$nn.jpg
-        wget --progress=bar:force:noscroll --tries=1 --timeout=20 $SHOT_URL -O $li
-        if [ ! -s $li ] ; then
+        wget --progress=bar:force:noscroll --tries=3 --timeout=30 $SHOT_URL -O $li
+        if [ $? -ne 0 ] || [ ! -s $li ] ; then
             rm $li
-            bash sendMessage.sh $ch_nobirds "dslr reset"
-            bash reset-dslr.sh
-            continue
-        fi
-        if [ $? -ne 0 ] ; then
-            bash sendMessage.sh $ch_nobirds "dslr reset"
+            tglog $ch_nobirds "dslr reset, rpi reboot"
+            wget --progress=bar:force:noscroll --tries=1 --timeout=10 $RPI_REBOOT_URL -O -
             bash reset-dslr.sh
             continue
         fi
@@ -127,7 +127,7 @@ while true; do
             ch=$ch_birds
             if (( $(echo "$yeye < $EYE_THR" | bc -l) )); then
                 if (( $(echo "$yeye < $NOEYE_THR" | bc -l) )); then
-                    bash sendMessage.sh $ch_noeye "not posted $yb $yeye $nn"
+                    tglog $ch_noeye "not posted $yb $yeye $nn"
                     continue
                 fi
                 ch=$ch_noeye
@@ -139,9 +139,9 @@ while true; do
         fi
         tg $li $ch &
     else
-        if [ $? -eq 20 ] ; then
+        if [ $? -eq 4 ] ; then
             net_err=$(( $net_err + 1 ))
-            if [ $net_err -ge 5 ] ; then
+            if [ $net_err -ge 6 ] ; then
                 reset_rpi
             fi
         fi

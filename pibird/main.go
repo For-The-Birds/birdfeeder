@@ -28,16 +28,16 @@ func config(w http.ResponseWriter, r *http.Request) {
 	o, err := cmd.CombinedOutput()
 	log.Printf("CombinedOutput: %s", o)
 	if err != nil {
-		log.Printf("exec error: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "%s", o)
+		log.Fatalf("exec error: %s", err.Error())
 		return
 	}
 	fmt.Fprintf(w, "%s", o)
 
 	var erri = camera.Init()
 	if erri < 0 {
-		log.Printf("error camera.Init(): %s (%d)", gphoto2go.CameraResultToString(erri), erri)
+		log.Fatalf("error camera.Init(): %s (%d)", gphoto2go.CameraResultToString(erri), erri)
 	}
 
 	mux.Unlock()
@@ -49,18 +49,18 @@ func shot(w http.ResponseWriter, r *http.Request) {
 	cfp, err := camera.TriggerCaptureToFile()
 
 	if err < 0 {
-		log.Printf("capture error: %s (%d)", gphoto2go.CameraResultToString(err), err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "capture error: %s (%d)", gphoto2go.CameraResultToString(err), err)
+		log.Fatalf("capture error: %s (%d)", gphoto2go.CameraResultToString(err), err)
 		return
 	}
 
 	cameraFileReader := camera.FileReader(cfp.Folder, cfp.Name)
 	fb, e := filebuffer.NewFromReader(cameraFileReader)
 	if e != nil {
-		log.Printf("read file error: %s\n", e.Error())
 		fmt.Fprintf(w, "read file error: %s", e.Error())
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatalf("read file error: %s\n", e.Error())
 		return
 	}
 
@@ -69,10 +69,14 @@ func shot(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, cfp.Name, time.Now(), fb)
 	err = camera.DeleteFile(cfp.Folder, cfp.Name)
 	if err < 0 {
-		log.Printf("file deletion error: %s (%d)", gphoto2go.CameraResultToString(err), err)
+		log.Fatalf("file deletion error: %s (%d)", gphoto2go.CameraResultToString(err), err)
 	}
 
 	mux.Unlock()
+}
+
+func reboot(w http.ResponseWriter, r *http.Request) {
+	exec.Command("sudo", "reboot").Run()
 }
 
 func motion(w http.ResponseWriter, r *http.Request) {
@@ -89,12 +93,13 @@ func main() {
 
 	var err = camera.Init() // this takes about 3 seconds
 	if err < 0 {
-		log.Printf("error camera.Init(): %s (%d)", gphoto2go.CameraResultToString(err), err)
+		log.Fatalf("error camera.Init(): %s (%d)", gphoto2go.CameraResultToString(err), err)
 	}
 
 	http.HandleFunc("/shot", shot)
 	http.HandleFunc("/config", config)
 	http.HandleFunc("/motion", motion)
+	http.HandleFunc("/reboot", reboot)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
