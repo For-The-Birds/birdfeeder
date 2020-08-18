@@ -3,7 +3,8 @@
 
 SHOT_URL="http://192.168.1.89:8080/shot"
 CONF_URL="http://192.168.1.89:8080/config"
-BIRDPRED_URL="http://127.0.0.1:5000/yesnobird"
+BIRDPRED_URL="http://127.0.0.1:5000/yesnobird1"
+BIRDID_URL="http://127.0.0.1:5000/bird"
 EYEPRED_URL="http://127.0.0.1:5000/eye"
 MOTION_URL="http://192.168.1.89:8080/motion"
 RPI_REBOOT_URL="http://192.168.1.89:8080/reboot"
@@ -12,9 +13,9 @@ ch_birds="-1001189666913"
 ch_nobirds="-1001396273178"
 ch_noeye="-1001455880770"
 
-RM_THR=0.2
-POST_THR=0.9
-EYE_THR=0.8
+RM_THR=-0.1
+POST_THR=2.0
+EYE_THR=0.5
 NOEYE_THR=0.001
 
 function tglog {
@@ -29,7 +30,7 @@ function tg {
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     bash sendPhoto.sh $2 $lis ''
-    tglog $2 "$et $f $iso $exp $yb $yeye $nn"
+    tglog $2 "$et $f $iso $exp\n$nn $p $yeye $dirdp $birdname"
     rm $lis
 }
 
@@ -111,23 +112,24 @@ while true; do
         li224=$li-224.jpg
         gm convert $li -resize '224x224!' $li224
 
-        yesno=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li224")
+        p=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li224")
         eye=$(curl -s $EYEPRED_URL -F filename="$PWD/$li224")
+        bird=$(curl -s $BIRDID_URL -F filename="$PWD/$li224" -F K=1)
         rm $li224
 
-        read nb yb <<< "$yesno"
         read neye yeye <<< "$eye"
-        echo "-=-=-=-=-=-=-= bird:$yb eye:$yeye =-=-=-=-=-=-=-"
-        if (( $(echo "$yb < $RM_THR" | bc -l) )); then
+        IFS=_ read birdid birdp birdname <<< "$bird"
+        echo "-=-=-=-=-=-=-= bird:$p eye:$yeye name:$birdname =-=-=-=-=-=-=-"
+        if (( $(echo "$p < $RM_THR" | bc -l) )); then
             rm -v $li
             continue
         fi
-        if (( $(echo "$yb > $POST_THR" | bc -l) )); then
+        if (( $(echo "$p > $POST_THR" | bc -l) )); then
             # yesbird
             ch=$ch_birds
             if (( $(echo "$yeye < $EYE_THR" | bc -l) )); then
                 if (( $(echo "$yeye < $NOEYE_THR" | bc -l) )); then
-                    tglog $ch_noeye "not posted $yb $yeye $nn"
+                    tglog $ch_noeye "not posted $p $yeye $nn"
                     continue
                 fi
                 ch=$ch_noeye
