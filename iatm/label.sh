@@ -2,8 +2,8 @@
 [ -z "$1" ] && echo "first arg 'project name' is empty" && exit -1
 project=$1
 
-#declare -a L=( nobird yesbird )
-declare -a L=( noeye yeseye )
+declare -a L=( yesbird nobird )
+#declare -a L=( noeye yeseye )
 L=(dummy ${L[@]}) # make labels start from 1 for easier keyboard logistics
 
 function maintain_focus {
@@ -17,7 +17,7 @@ function maintain_focus {
 
 maintain_focus &
 mf=$!
-trap "kill $mf" EXIT
+trap "kill $mf" EXIT SIGINT SIGTERM
 sleep 0.3
 
 # NB: can be launched with emply stdin
@@ -49,52 +49,13 @@ while read f; do
     killall sxiv
     [ "$ln" = "q" ] && break
     [ "$ln" = "s" ] && continue
-    echo $f _ $ln >> $project-label.txt
+    echo $f _ $ln _ ${L[$ln]} >> labels-$project.txt
 
     gm convert $f -resize '224x224!' $im224 &
-    ln -s $f label/${L[$ln]}/
-    ln -s ../../$im224 label224/${L[$ln]}/
 done
-
-set -vx
 
 kill $mf
 
-json=data-$project.json
-rm -v $json
-
-#cat no.txt      | sed 's/$/ _ 1/' >>f-label.txt
-#cat yes-all.txt | sed 's/$/ _ 2/' >>f-label.txt
-t=$(mktemp -p .)
-sort -k 1,1 -u $project-label.txt >>$t
-mv $t $project-label.txt
-
-set +vx
-
-#cat f-label.txt | while IFS=_ read f ln ; do
-for label in ${L[@]}; do
-    ldir=label224/$label
-
-    ls -1 $ldir | while read f; do
-
-        cat >>$json << EOF
-        {
-            "image_id": "$(basename $f)",
-            "label": "$label"
-        }
-        ,
-EOF
-    echo -n .
-    done
-done
-echo
-
-echo "[" >$t
-head -n -1 $json >>$t
-echo "]" >>$t
-mv $t $json
-
-
-echo docker run -t --rm -v $PWD:/home -w /home python:3.6 \
-    bash -c "pip install imageatm nbconvert && python train.py $project"
+#echo docker run -t --rm -v $PWD:/home -w /home python:3.6 \
+#    bash -c "pip install imageatm nbconvert && python train.py $project"
 

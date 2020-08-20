@@ -4,8 +4,7 @@
 SHOT_URL="http://192.168.1.89:8080/shot"
 CONF_URL="http://192.168.1.89:8080/config"
 BIRDPRED_URL="http://127.0.0.1:5000/yesnobird1"
-BIRDID_URL="http://127.0.0.1:5000/bird"
-EYEPRED_URL="http://127.0.0.1:5000/eye"
+FINDBIRD_URL="http://127.0.0.1:5000/find_birds"
 MOTION_URL="http://192.168.1.89:8080/motion"
 RPI_REBOOT_URL="http://192.168.1.89:8080/reboot"
 
@@ -30,7 +29,9 @@ function tg {
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     bash sendPhoto.sh $2 $lis ''
-    tglog $2 "$et $f $iso $exp\n$nn $p $yeye $dirdp $birdname"
+    [ -n "$3" ] && bash sendPhoto.sh $ch_nobirds $3 ''
+    tglog $2 "$et $f $iso $exp  $nn $p"
+    [ -n "$bname" ] && tglog $2 "$bname"
     rm $lis
 }
 
@@ -84,6 +85,7 @@ function reset_rpi {
     net_err=0
 }
 
+#set -vx
 while true; do
     if wget -q --tries=1 --timeout=10 -O - $MOTION_URL ; then
         check_cmd
@@ -109,17 +111,10 @@ while true; do
         f=$(exiv2   -q -g Exif.Photo.ApertureValue     -Pt $li)
         exp=$(exiv2 -q -g Exif.Photo.ExposureBiasValue -Pt $li)
 
-        li224=$li-224.jpg
-        gm convert $li -resize '224x224!' $li224
+        unset plt bname
 
-        p=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li224")
-        eye=$(curl -s $EYEPRED_URL -F filename="$PWD/$li224")
-        bird=$(curl -s $BIRDID_URL -F filename="$PWD/$li224" -F K=1)
-        rm $li224
-
-        read neye yeye <<< "$eye"
-        IFS=_ read birdid birdp birdname <<< "$bird"
-        echo "-=-=-=-=-=-=-= bird:$p eye:$yeye name:$birdname =-=-=-=-=-=-=-"
+        p=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li")
+        echo "-=-=-=-=-=-=-= bird:$p =-=-=-=-=-=-=-=-=-"
         if (( $(echo "$p < $RM_THR" | bc -l) )); then
             rm -v $li
             continue
@@ -127,19 +122,24 @@ while true; do
         if (( $(echo "$p > $POST_THR" | bc -l) )); then
             # yesbird
             ch=$ch_birds
-            if (( $(echo "$yeye < $EYE_THR" | bc -l) )); then
-                if (( $(echo "$yeye < $NOEYE_THR" | bc -l) )); then
-                    tglog $ch_noeye "not posted $p $yeye $nn"
-                    continue
+            birds=$(curl -s $FINDBIRD_URL -F filename="$PWD/$li" -F plt_filename="$PWD/plt/$li")
+            bcount=$(echo "$birds" | jq 'length')
+            if [ "$bcount" = "0" ]; then
+                ch=$ch_nobirds
+            else
+                plt=plt/$li
+                bid=$(echo "$birds" | jq '.[] | .bird.id')
+                bname=$(echo "$birds" | jq '.[] | .bird.name')
+                if [ $(echo "$bid" | grep -v 695 | wc -l) = "0" ]; then
+                    ch=$ch_noeye
                 fi
-                ch=$ch_noeye
             fi
         else
             # nobird
-            ch="$ch_nobirds"
+            ch=$ch_nobirds
             ln -s ../$li confusing/$(basename $li)
         fi
-        tg $li $ch &
+        tg $li $ch $plt &
     else
         if [ $? -eq 4 ] ; then
             net_err=$(( $net_err + 1 ))
