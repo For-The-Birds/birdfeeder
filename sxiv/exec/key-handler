@@ -38,6 +38,7 @@ case "$1" in
 "C-comma")  rotate 270 ;;
 "C-period") rotate  90 ;;
 "C-slash")  rotate 180 ;;
-[0-9])    set_tag $1 ;;
+[0-9])      set_tag $1 ;;
+"R")        while read file; do rm -v "$file" & done ;;
 esac
 

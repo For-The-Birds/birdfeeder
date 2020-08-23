@@ -14,8 +14,7 @@ ch_noeye="-1001455880770"
 
 RM_THR=-0.1
 POST_THR=2.0
-EYE_THR=0.5
-NOEYE_THR=0.001
+EYE_THR=0.1
 
 function tglog {
     l=$(echo -e "\x60${@:2}\x60")
@@ -29,9 +28,7 @@ function tg {
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     bash sendPhoto.sh $2 $lis ''
-    [ -n "$3" ] && bash sendPhoto.sh $ch_nobirds $3 ''
     tglog $2 "$et $f $iso $exp  $nn $p"
-    [ -n "$bname" ] && tglog $2 "$bname"
     rm $lis
 }
 
@@ -41,7 +38,7 @@ function postgif {
     bash sendVideo.sh $ch_nobirds birds_video.mp4 "${@:3}"
 }
 
-tglog $ch_nobirds "starting rm:$RM_THR post:$POST_THR eye:$EYE_THR noeye:$NOEYE_THR"
+tglog $ch_nobirds "starting rm:$RM_THR post:$POST_THR eye:$EYE_THR"
 
 function check_cmd {
         updates=$(bash apicall.sh getUpdates offset=-1)
@@ -115,22 +112,20 @@ while true; do
 
         p=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li")
         echo "-=-=-=-=-=-=-= bird:$p =-=-=-=-=-=-=-=-=-"
-        if (( $(echo "$p < $RM_THR" | bc -l) )); then
+        if (( `bc <<< "$p < $RM_THR"` )); then
             rm -v $li
             continue
         fi
-        if (( $(echo "$p > $POST_THR" | bc -l) )); then
+        if (( `bc <<< "$p > $POST_THR"` )); then
             # yesbird
             ch=$ch_birds
-            birds=$(curl -s $FINDBIRD_URL -F filename="$PWD/$li" -F plt_filename="$PWD/plt/$li")
+            birds=$(curl -s $FINDBIRD_URL -F filename="$PWD/$li")
             bcount=$(echo "$birds" | jq 'length')
             if [ "$bcount" = "0" ]; then
                 ch=$ch_nobirds
             else
-                plt=plt/$li
-                bid=$(echo "$birds" | jq '.[] | .bird.id')
-                bname=$(echo "$birds" | jq '.[] | .bird.name')
-                if [ $(echo "$bid" | grep -v 695 | wc -l) = "0" ]; then
+                max_eye=$(echo "$birds" | jq '.[] | .eye' | sort -n | tail -n1)
+                if (( `bc <<< "$max_eye < $EYE_THR"` )); then
                     ch=$ch_noeye
                 fi
             fi
