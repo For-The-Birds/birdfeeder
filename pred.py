@@ -130,8 +130,9 @@ def fb():
     if 'save_crop' in request.form:
         i=0
         for d in ret:
-            ocfn = "{}/{:04.02f}-{}-{}.jpg".format(
+            ocfn = "{}/{:04.02f}-{:04.02f}-{}-{}.jpg".format(
                     request.form['save_crop'],
+                    d['eye'],
                     d['sharpness'],
                     os.path.basename(request.form['filename'])[:-4],
                     i)

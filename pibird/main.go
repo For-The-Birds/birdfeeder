@@ -35,9 +35,11 @@ func config(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "%s", o)
 
+	time.Sleep(500 * time.Millisecond)
+
 	var erri = camera.Init()
 	if erri < 0 {
-		log.Fatalf("error camera.Init(): %s (%d)", gphoto2go.CameraResultToString(erri), erri)
+		log.Fatalf("error camera.Init() after config: %s (%d)", gphoto2go.CameraResultToString(erri), erri)
 	}
 
 	mux.Unlock()
@@ -75,6 +77,11 @@ func shot(w http.ResponseWriter, r *http.Request) {
 	mux.Unlock()
 }
 
+func exit(w http.ResponseWriter, r *http.Request) {
+	log.Printf("exiting by request")
+	os.Exit(0)
+}
+
 func reboot(w http.ResponseWriter, r *http.Request) {
 	exec.Command("sudo", "reboot").Run()
 }
@@ -100,6 +107,7 @@ func main() {
 	http.HandleFunc("/config", config)
 	http.HandleFunc("/motion", motion)
 	http.HandleFunc("/reboot", reboot)
+	http.HandleFunc("/exit", exit)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

@@ -1,24 +1,48 @@
 #!/bin/bash
 
+. tglib.sh
+. VARS.sh
 
-SHOT_URL="http://192.168.1.89:8080/shot"
-CONF_URL="http://192.168.1.89:8080/config"
-BIRDPRED_URL="http://127.0.0.1:5000/yesnobird1"
-FINDBIRD_URL="http://127.0.0.1:5000/find_birds"
-MOTION_URL="http://192.168.1.89:8080/motion"
-RPI_REBOOT_URL="http://192.168.1.89:8080/reboot"
+oldexpc=-1
 
-ch_birds="-1001189666913"
-ch_nobirds="-1001396273178"
-ch_noeye="-1001455880770"
+function illuminance {
+    printf "%.2f" $(curl -s livingroom.local/sensor/livingroom_illuminance | jq '.value')
+}
 
-RM_THR=-0.1
-POST_THR=2.0
-EYE_THR=0.1
+# Choice: 0 +2
+# Choice: 1 +1 2/3
+# Choice: 2 +1 1/2
+# Choice: 3 +1 1/3
+# Choice: 4 +1
+# Choice: 5 +2/3
+# Choice: 6 +1/2
+# Choice: 7 +1/3
+# Choice: 8 0
+# Choice: 9 -1/3
+# Choice: 10 -1/2
+# Choice: 11 -2/3
+# Choice: 12 -1
+# Choice: 13 -1 1/3
+# Choice: 14 -1 1/2
+# Choice: 15 -1 2/3
+# Choice: 16 -2
 
-function tglog {
-    l=$(echo -e "\x60${@:2}\x60")
-    bash sendMessage.sh $1 "$l"
+function lt {
+    (( $(bc <<< "$1 < $2") ))
+}
+
+function expconfig {
+    lx=$1
+    c=8
+    lt $lx 13 && c=7
+    lt $lx 10 && c=6
+    lt $lx 08 && c=5
+    lt $lx 06 && c=4
+    lt $lx 04 && c=3
+    lt $lx 03 && c=2
+    lt $lx 02 && c=1
+    lt $lx 01 && c=0
+    echo $c
 }
 
 function tg {
@@ -27,21 +51,21 @@ function tg {
     gm convert $1 -unsharp 0x2+1.5+0 -resize 70% $lis
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
-    bash sendPhoto.sh $2 $lis ''
-    tglog $2 "$et $f $iso $exp  $nn $p"
+    sendPhoto $2 $lis ''
+    tglog $2 "$et $f $iso [$expc:$exp|$lx]  $nn $p"
     rm $lis
 }
 
 function postgif {
     log=$(bash -vx makegif.sh birds/ $1 $2 birds_video.mp4)
     tglog $ch_nobirds "$log"
-    bash sendVideo.sh $ch_nobirds birds_video.mp4 "${@:3}"
+    sendVideo $ch_nobirds birds_video.mp4 "${@:3}"
 }
 
 tglog $ch_nobirds "starting rm:$RM_THR post:$POST_THR eye:$EYE_THR"
 
 function check_cmd {
-        updates=$(bash apicall.sh getUpdates offset=-1)
+        updates=$(apicall getUpdates offset=-1)
 
         new_update_id=$(echo $updates | jq '.result[-1].update_id')
         [ "$new_update_id" = "$old_update_id" ] && return
@@ -84,14 +108,21 @@ function reset_rpi {
 
 #set -vx
 while true; do
+    #if wget --no-verbose --tries=1 --timeout=10 -O - $MOTION_URL ; then
     if wget -q --tries=1 --timeout=10 -O - $MOTION_URL ; then
-        check_cmd
+        #check_cmd
 
         read n <imagen
         n=$(( n + 1 ))
         nn=$( printf '%.8d' $n )
         li=birds/$nn.jpg
-        wget --progress=bar:force:noscroll --tries=3 --timeout=30 $SHOT_URL -O $li
+        lx=$(illuminance)
+        expc=$(expconfig $lx)
+        if [ "$oldexpc" != "$expc" ]; then
+            oldexpc=$expc
+            curl -s $CONF_URL -F arg="exposurecompensation=$expc"
+        fi
+        wget --progress=bar:force:noscroll --tries=3 --timeout=60 $SHOT_URL -O $li
         if [ $? -ne 0 ] || [ ! -s $li ] ; then
             rm $li
             tglog $ch_nobirds "dslr reset, rpi reboot"
@@ -138,7 +169,10 @@ while true; do
     else
         if [ $? -eq 4 ] ; then
             net_err=$(( $net_err + 1 ))
-            if [ $net_err -ge 6 ] ; then
+            if [ $net_err -eq 10 ] ; then
+                bash reset-dslr.sh
+            fi
+            if [ $net_err -ge 60 ] ; then
                 reset_rpi
             fi
         fi
