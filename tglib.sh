@@ -41,8 +41,12 @@ sendVideo() {
         -F video=@$2
 }
 
+function tgmono {
+    echo -e "\x60${@}\x60"
+}
+
 function tglog {
-    l=$(echo -e "\x60${@:2}\x60")
-    sendMessage $1 "$l"
+    m=$(tgmono "${@:2}")
+    sendMessage $1 "$m"
 }
 

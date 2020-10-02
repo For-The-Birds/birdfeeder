@@ -5,6 +5,7 @@ FINDBIRD_URL="http://127.0.0.1:5000/find_birds"
 MOTION_URL="http://192.168.1.89:8080/motion"
 RPI_REBOOT_URL="http://192.168.1.89:8080/reboot"
 
+ch_feeder=-1001261361936
 ch_birds=-1001189666913
 ch_nobirds=-1001396273178
 ch_noeye=-1001455880770

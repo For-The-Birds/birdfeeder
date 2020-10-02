@@ -51,8 +51,15 @@ function tg {
     gm convert $1 -unsharp 0x2+1.5+0 -resize 70% $lis
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
-    sendPhoto $2 $lis ''
-    tglog $2 "$et $f $iso [$expc:$exp|$lx]  $nn $p"
+    log=$(tgmono "$et $f $iso [$expc:$exp|$lx]  $nn $p")
+    apicall sendPhoto \
+        -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"'$nn'"}]]}' \
+        -F photo=@$lis \
+        -F chat_id=$2 \
+        -F parse_mode=MarkdownV2 \
+        -F caption="$log"
+    #sendPhoto $2 $lis ''
+    #tglog $2 "$et $f $iso [$expc:$exp|$lx]  $nn $p"
     rm $lis
 }
 
@@ -172,7 +179,7 @@ while true; do
             if [ $net_err -eq 10 ] ; then
                 bash reset-dslr.sh
             fi
-            if [ $net_err -ge 60 ] ; then
+            if [ $net_err -ge 90 ] ; then
                 reset_rpi
             fi
         fi

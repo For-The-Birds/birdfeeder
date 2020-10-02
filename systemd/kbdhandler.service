@@ -1,0 +1,13 @@
+[Unit]
+Description=Bird feeder inline keyboard callbacks handler
+Conflicts=birdwatch-stop.service
+#Requires=birdpred.service
+#After=birdpred.service
+
+[Service]
+ExecStart=/bin/bash kbdhandler.sh
+KillSignal=SIGTERM
+WorkingDirectory=/home/birds/bf
+
+[Install]
+WantedBy=default.target
