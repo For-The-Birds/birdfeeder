@@ -12,9 +12,12 @@ process_audio() {
     sox $wav $gain gain -n -3
     sox $gain -n spectrogram -o $png
     opusenc $gain $opus
+    o=${opus%%.wav.opus}
+    ln -s $opus $o
     rm $gain
     sendPhoto $ch_audio $png "$bn"
-    sendAudio $ch_audio $opus
+    sendAudio $ch_audio $o
+    rm $o
 }
 
 while true; do
