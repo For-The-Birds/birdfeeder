@@ -6,6 +6,7 @@ Conflicts=birdwatch-stop.service
 ExecStart=/home/yekm/go/bin/pibird
 Restart=always
 StartLimitIntervalSec=0
+SyslogIdentifier=pibird
 
 [Install]
 WantedBy=default.target

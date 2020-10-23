@@ -48,16 +48,22 @@ function expconfig {
 function tg {
     lis=$1-sharp.jpg
     # FIXME: hope convert is faster than dslr
-    gm convert $1 -unsharp 0x2+1.5+0 -resize 70% $lis
+    #gm convert $1 -unsharp 0x2+1.5+0 -resize 70% $lis
+    gm convert $1 -resize 70% $lis
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     log=$(tgmono "$et $f $iso [$expc:$exp|$lx]  $nn $p")
-    apicall sendPhoto \
-        -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"'$nn'"}]]}' \
+    ans=$(apicall sendPhoto \
+        -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"post '$nn'"},{"text":"develop","callback_data":"develop '$nn'"}]]}' \
         -F photo=@$lis \
         -F chat_id=$2 \
         -F parse_mode=MarkdownV2 \
-        -F caption="$log"
+        -F caption="$log")
+
+    chatname=$(jq '.result.chat.username' <<< "$ans")
+    message_id=$(jq '.result.message_id' <<< "$ans")
+    file_id=$(jq '.result.photo[0].file_id' <<< "$ans")
+    echo "$nn $chatname/$message_id $file_id" >> birdsdb
     #sendPhoto $2 $lis ''
     #tglog $2 "$et $f $iso [$expc:$exp|$lx]  $nn $p"
     rm $lis
@@ -103,7 +109,7 @@ function reset_rpi {
     wget -q -O - $MOTION_URL
     while [ $? -eq 4 ] ; do
         net_err=$(( $net_err + 1 ))
-        if [ $net_err -ge 600 ] ; then
+        if [ $net_err -ge 900 ] ; then
             tglog $ch_nobirds "rpi reset"
             bash reset-rpi.sh
         fi
@@ -116,28 +122,42 @@ function reset_rpi {
 #set -vx
 while true; do
     #if wget --no-verbose --tries=1 --timeout=10 -O - $MOTION_URL ; then
-    if wget -q --tries=1 --timeout=10 -O - $MOTION_URL ; then
+    if wget -q --tries=1 --timeout=10 -O - $MOTION_URL >/dev/null ; then
         #check_cmd
+
+        lx=$(illuminance)
+        if lt $lx 0.5 ; then
+            echo "low illuminance $lx"
+            sleep 5
+            continue
+        fi
+        expc=$(expconfig $lx)
+        if [ "$oldexpc" != "$expc" ]; then
+            oldexpc=$expc
+            #curl -s $CONF_URL -F arg="exposurecompensation=$expc"
+        fi
 
         read n <imagen
         n=$(( n + 1 ))
         nn=$( printf '%.8d' $n )
         li=birds/$nn.jpg
-        lx=$(illuminance)
-        expc=$(expconfig $lx)
-        if [ "$oldexpc" != "$expc" ]; then
-            oldexpc=$expc
-            curl -s $CONF_URL -F arg="exposurecompensation=$expc"
-        fi
-        wget --progress=bar:force:noscroll --tries=3 --timeout=60 $SHOT_URL -O $li
-        if [ $? -ne 0 ] || [ ! -s $li ] ; then
-            rm $li
+        cr2=rawbirds/$nn.cr2
+        wget --progress=bar:force:noscroll --tries=3 --timeout=60 $SHOT_URL -O $cr2
+        if [ $? -ne 0 ] || [ ! -s $cr2 ] ; then
+            rm $cr2
             tglog $ch_nobirds "dslr reset, rpi reboot"
             wget --progress=bar:force:noscroll --tries=1 --timeout=10 $RPI_REBOOT_URL -O -
             bash reset-dslr.sh
             continue
         fi
         echo $n >imagen
+
+        darktable-cli $cr2 $li --core --configdir ./.dt-fast
+        if [ $? -ne 0 ] || [ ! -s $li ] ; then
+            rm $cr2 $li
+            tglog $ch_nobirds "darktable-cli failed"
+            continue
+        fi
 
         #sharpness=$(python3 sharpness.py $li)
 
@@ -151,7 +171,7 @@ while true; do
         p=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li")
         echo "-=-=-=-=-=-=-= bird:$p =-=-=-=-=-=-=-=-=-"
         if (( `bc <<< "$p < $RM_THR"` )); then
-            rm -v $li
+            rm -v $li $cr2
             continue
         fi
         if (( `bc <<< "$p > $POST_THR"` )); then

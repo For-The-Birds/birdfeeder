@@ -1,14 +1,14 @@
 [Unit]
-Description=Bird feeder inline keyboard callbacks handler
+Description=Bird feeder raw images developer
 Conflicts=birdwatch-stop.service
 #Requires=birdpred.service
 #After=birdpred.service
 
 [Service]
-ExecStart=/bin/bash kbdhandler.sh
+ExecStart=/bin/bash rawdeveloper.sh
 KillSignal=SIGTERM
 WorkingDirectory=/home/birds/bf
-SyslogIdentifier=kbdhandler
+SyslogIdentifier=rawdeveloper
 
 [Install]
 WantedBy=default.target

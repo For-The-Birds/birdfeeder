@@ -8,6 +8,7 @@ After=birdpred.service
 ExecStart=/bin/bash dslr.sh
 KillSignal=SIGTERM
 WorkingDirectory=/home/birds/bf
+SyslogIdentifier=birdwatch
 
 [Install]
 WantedBy=default.target
