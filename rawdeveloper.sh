@@ -12,7 +12,8 @@ develop_raw() {
     tglog $ch_nobirds "raw developing $cr2"
     nice darktable-cli $cr2 birds.xmp $hq --core --configdir ./.dt-hq
     hq_small=$hq-resize.jpg
-    gm convert $hq -resize 70% $hq_small
+    cp $hq $hq_small
+    #gm convert $hq -resize 70% $hq_small
     #nice darktable-cli $cr2 $hq --core --configdir ./.dt-hq
     minutes=$(bc -l <<< "scale=2; $SECONDS / 60.0")
     if [ ! -s $hq_small ] ; then

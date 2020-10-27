@@ -54,15 +54,15 @@ function tg {
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     log=$(tgmono "$et $f $iso [$expc:$exp|$lx]  $nn $p")
     ans=$(apicall sendPhoto \
-        -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"post '$nn'"},{"text":"develop","callback_data":"develop '$nn'"}]]}' \
+        -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"post '$nn'"}]]}' \
         -F photo=@$lis \
         -F chat_id=$2 \
         -F parse_mode=MarkdownV2 \
         -F caption="$log")
 
-    chatname=$(jq '.result.chat.username' <<< "$ans")
+    chatname=$(jq '.result.chat.username' <<< "$ans" | tr -d '"')
     message_id=$(jq '.result.message_id' <<< "$ans")
-    file_id=$(jq '.result.photo[0].file_id' <<< "$ans")
+    file_id=$(jq '.result.photo[] | .file_unique_id' <<< "$ans" | tr -d '"' | tr '\n' ' ')
     echo "$nn $chatname/$message_id $file_id" >> birdsdb
     #sendPhoto $2 $lis ''
     #tglog $2 "$et $f $iso [$expc:$exp|$lx]  $nn $p"
@@ -109,9 +109,10 @@ function reset_rpi {
     wget -q -O - $MOTION_URL
     while [ $? -eq 4 ] ; do
         net_err=$(( $net_err + 1 ))
-        if [ $net_err -ge 900 ] ; then
+        if [ $net_err -ge 300 ] ; then
             tglog $ch_nobirds "rpi reset"
             bash reset-rpi.sh
+            net_err=0
         fi
         sleep 1
         wget -q -O - $MOTION_URL
@@ -122,7 +123,8 @@ function reset_rpi {
 #set -vx
 while true; do
     #if wget --no-verbose --tries=1 --timeout=10 -O - $MOTION_URL ; then
-    if wget -q --tries=1 --timeout=10 -O - $MOTION_URL >/dev/null ; then
+    if wget -q --tries=1 --timeout=15 -O - $MOTION_URL >/dev/null ; then
+        net_err=0
         #check_cmd
 
         lx=$(illuminance)
@@ -141,23 +143,15 @@ while true; do
         n=$(( n + 1 ))
         nn=$( printf '%.8d' $n )
         li=birds/$nn.jpg
-        cr2=rawbirds/$nn.cr2
-        wget --progress=bar:force:noscroll --tries=3 --timeout=60 $SHOT_URL -O $cr2
-        if [ $? -ne 0 ] || [ ! -s $cr2 ] ; then
-            rm $cr2
+        wget --progress=bar:force:noscroll --tries=3 --timeout=60 $SHOT_URL -O $li
+        if [ $? -ne 0 ] || [ ! -s $li ] ; then
+            rm $li
             tglog $ch_nobirds "dslr reset, rpi reboot"
             wget --progress=bar:force:noscroll --tries=1 --timeout=10 $RPI_REBOOT_URL -O -
             bash reset-dslr.sh
             continue
         fi
         echo $n >imagen
-
-        darktable-cli $cr2 $li --core --configdir ./.dt-fast
-        if [ $? -ne 0 ] || [ ! -s $li ] ; then
-            rm $cr2 $li
-            tglog $ch_nobirds "darktable-cli failed"
-            continue
-        fi
 
         #sharpness=$(python3 sharpness.py $li)
 
@@ -171,7 +165,7 @@ while true; do
         p=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li")
         echo "-=-=-=-=-=-=-= bird:$p =-=-=-=-=-=-=-=-=-"
         if (( `bc <<< "$p < $RM_THR"` )); then
-            rm -v $li $cr2
+            rm -v $li
             continue
         fi
         if (( `bc <<< "$p > $POST_THR"` )); then

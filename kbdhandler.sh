@@ -22,16 +22,18 @@ while true; do
         chat_id=$(jq '.result[-1].message.chat.id' <<< "$u")
         fwd_id=$(jq '.result[-1].message.forward_from_chat.id' <<< "$u")
         message_id=$(jq '.result[-1].message.message_id' <<< "$u")
-        file_id=$(jq '.result[0].message.photo[0].file_id' <<< "$u")
-        nn=$(grep $file_id birdsdb | cut -f1 -d' ')
-        nn=$(grep "^$nn" birdsdb | grep -v RAW | cut -f1 -d' ')
-        link=$(grep "^$nn" birdsdb | grep -v RAW | cut -f2 -d' ')
+        file_id=$(jq '.result[0].message.photo[0].file_unique_id' <<< "$u" | tr -d '"')
         if [ -z "$file_id" ] ||
-            [ -z "$link" ] ||
-            [ -z "$nn" ] ||
             [ "$fwd_id" != "$ch_feeder" ] ||
             [ "$chat_id" != "$ch_or" ] ||
             [ "$telegram" != "777000" ] ; then
+            continue
+        fi
+        nn=$(grep $file_id birdsdb | cut -f1 -d' ')
+        nn=$(grep "^$nn" birdsdb | grep -v _RAW_ | cut -f1 -d' ')
+        link=$(grep "^$nn" birdsdb | grep -v _RAW_ | cut -f2 -d' ')
+        if [ -z "$link" ] ||
+            [ -z "$nn" ] ; then
             continue
         fi
         #[ -z "$cb_chat_name" ] && continue
