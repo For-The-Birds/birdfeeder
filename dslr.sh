@@ -190,12 +190,14 @@ while true; do
     else
         if [ $? -eq 4 ] ; then
             net_err=$(( $net_err + 1 ))
-            if [ $net_err -eq 10 ] ; then
+            if [ $net_err -eq 30 ] ; then
                 bash reset-dslr.sh
+                curl --silent $PIBIRD_RESTART_URL
             fi
-            if [ $net_err -ge 90 ] ; then
+            if [ $net_err -ge 60 ] ; then
                 reset_rpi
             fi
+            sleep 1.5
         fi
         sleep 0.5
     fi
