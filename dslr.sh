@@ -54,7 +54,7 @@ function tg {
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
     log=$(tgmono "$et $f $iso [$expc:$exp|$lx]  $nn $p")
     ans=$(apicall sendPhoto \
-        -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"post '$nn'"}]]}' \
+        -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"post '$nn'"},{"text":"sell","callback_data":"sell '$nn'"}]]}' \
         -F photo=@$lis \
         -F chat_id=$2 \
         -F parse_mode=MarkdownV2 \

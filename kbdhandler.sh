@@ -55,11 +55,14 @@ while true; do
     echo "from $from, data $bdata"
     if [ "$from" = "235802612" ] ||
         [ "$from" = "216236682" ] ; then
+        nn=$(echo "$bdata" | cut -f2 -d' ')
+        if [[ "$bdata" == "sell "* ]] ; then
+            bash sell.sh $nn &
+        fi
         if [[ "$bdata" == "post "* ]] ; then
             apicall sendPhoto -F chat_id=$ch_feeder -F photo=$fid # -F caption="$bdata"
         fi
         if [[ "$bdata" == "develop "* ]] ; then
-            nn=$(echo "$bdata" | cut -f2 -d' ')
             hq=birds-hq/$nn.jpg
             ln -s ../rawbirds/$nn.cr2 birds-hq/$nn.cr2
         fi
