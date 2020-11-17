@@ -6,7 +6,7 @@
 oldexpc=-1
 
 function illuminance {
-    printf "%.2f" $(curl -s livingroom.local/sensor/livingroom_illuminance | jq '.value')
+    printf "%.2f" $(curl -s livingroom.lan/sensor/livingroom_illuminance | jq '.value')
 }
 
 # Choice: 0 +2
@@ -52,7 +52,8 @@ function tg {
     gm convert $1 -resize 70% $lis
 
     #pid=$(echo $li | sed 's,^li/,, ; s/.jpg$//')
-    log=$(tgmono "$et $f $iso [$expc:$exp|$lx]  $nn $p")
+    t=$(curl -s livingroom.lan/sensor/outside | jq '.state' | tr -d '"')
+    log=$(tgmono "$et $f $iso $exp  $nn $p\n$lx lx $t")
     ans=$(apicall sendPhoto \
         -F reply_markup='{"inline_keyboard":[[{"text":"post","callback_data":"post '$nn'"},{"text":"sell","callback_data":"sell '$nn'"}]]}' \
         -F photo=@$lis \
@@ -130,9 +131,11 @@ while true; do
         lx=$(illuminance)
         if lt $lx 0.5 ; then
             echo "low illuminance $lx"
-            sleep 5
+            mosquitto_pub -h 192.168.1.87 -t livingroom/switch/livingroom_sw4/command -m ON
+            sleep 10
             continue
         fi
+        mosquitto_pub -h 192.168.1.87 -t livingroom/switch/livingroom_sw4/command -m OFF
         expc=$(expconfig $lx)
         if [ "$oldexpc" != "$expc" ]; then
             oldexpc=$expc
@@ -155,11 +158,6 @@ while true; do
 
         #sharpness=$(python3 sharpness.py $li)
 
-        et=$(exiv2  -q -g Exif.Photo.ExposureTime      -Pt $li)
-        iso=$(exiv2 -q -g Exif.Photo.ISOSpeedRatings   -Pt $li)
-        f=$(exiv2   -q -g Exif.Photo.ApertureValue     -Pt $li)
-        exp=$(exiv2 -q -g Exif.Photo.ExposureBiasValue -Pt $li)
-
         unset plt bname
 
         p=$(curl --silent $BIRDPRED_URL -F filename="$PWD/$li")
@@ -168,15 +166,21 @@ while true; do
             rm -v $li
             continue
         fi
+
+        et=$(exiv2  -q -g Exif.Photo.ExposureTime      -Pt $li)
+        iso=$(exiv2 -q -g Exif.Photo.ISOSpeedRatings   -Pt $li)
+        f=$(exiv2   -q -g Exif.Photo.ApertureValue     -Pt $li)
+        exp=$(exiv2 -q -g Exif.Photo.ExposureBiasValue -Pt $li)
+
         if (( `bc <<< "$p > $POST_THR"` )); then
             # yesbird
             ch=$ch_birds
             birds=$(curl -s $FINDBIRD_URL -F filename="$PWD/$li")
-            bcount=$(echo "$birds" | jq 'length')
+            bcount=$(echo "$birds" | jq '.detections | length')
             if [ "$bcount" = "0" ]; then
                 ch=$ch_nobirds
             else
-                max_eye=$(echo "$birds" | jq '.[] | .eye' | sort -n | tail -n1)
+                max_eye=$(echo "$birds" | jq '.max_eye')
                 if (( `bc <<< "$max_eye < $EYE_THR"` )); then
                     ch=$ch_noeye
                 fi

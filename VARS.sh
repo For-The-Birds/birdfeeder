@@ -23,4 +23,5 @@ BAKD="/mnt/1/bak/"
 WAVD="$BAKD/birds_audio/gate_rec"
 PNGD="$BAKD/birds_audio/png"
 OPUSD="$BAKD/birds_audio/opus"
+FLACD="$BAKD/birds_audio/flac"
 
